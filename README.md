@@ -65,7 +65,7 @@ The application features a clean, modern dashboard interface with:
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/asefahmed500/salesiomui-.git
    cd salesiom
    ```
 
