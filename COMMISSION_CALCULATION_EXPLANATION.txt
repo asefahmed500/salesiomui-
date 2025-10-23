@@ -1,0 +1,137 @@
+SALES COMMISSION CALCULATION SYSTEM - EXPLANATION
+
+This document explains how the commission calculation works in the Sales Commission Management Dashboard.
+
+=== OVERVIEW ===
+
+The system calculates sales commissions based on two primary factors:
+1. Sale Amount (in Taka/BDT)
+2. Target Completion Percentage
+
+The higher the target completion percentage, the higher the commission rate applied.
+
+=== CORE CALCULATION LOGIC ===
+
+Location: src/lib/calculations.ts
+
+1. Commission Rate Determination:
+   - Uses a tiered system defined in the CommissionRates object
+   - Default tiers:
+     * 80% target = 1% commission
+     * 90% target = 2% commission
+     * 100% target = 3% commission
+     * 110% target = 4% commission
+     * 120% target = 5% commission
+   - Algorithm checks from highest threshold downward
+   - First threshold met or exceeded determines the rate
+
+2. Commission Calculation Formula:
+   Commission = (Sale Amount × Commission Rate) ÷ 100
+   Example: ৳10,000 sale with 110% target = (10,000 × 4) ÷ 100 = ৳400
+
+=== TYPESCRIPT INTERFACES ===
+
+Location: src/lib/types.ts
+
+1. SalesRecord Interface:
+   - employeeId: Unique identifier for the employee
+   - employeeName: Name of the salesperson
+   - designation: Job title
+   - productName: Product sold
+   - saleAmount: Sale value in BDT/Taka
+   - targetCompletion: Percentage of sales target achieved
+   - status: "Sold" or "Not Sold"
+   - customCommissionRate: Optional override rate
+
+2. CommissionRates Type:
+   - Record<number, number> mapping target percentages to commission percentages
+
+=== UI COMPONENTS AND THEIR ROLES ===
+
+1. CommissionCalculator (src/components/commission-calculator.tsx):
+   - Interactive tool for calculating commissions
+   - Inputs: Sale amount and target completion slider
+   - Shows real-time commission calculation
+   - Displays breakdown of calculation steps
+
+2. AddSalesRecord (src/components/add-sales-record.tsx):
+   - Form for adding new sales records
+   - Previews commission before saving
+   - Supports custom commission rates
+   - Validates required fields
+
+3. SalesTable (src/components/sales-table.tsx):
+   - Displays all sales records in a table
+   - Shows calculated commission for each record
+   - Sortable by commission amount
+   - Filters by status and search term
+
+4. SummaryCards (src/components/summary-cards.tsx):
+   - Shows key metrics:
+     * Total Sales
+     * Total Commission
+     * Average Commission
+
+5. CommissionCharts (src/components/commission-charts.tsx):
+   - Visualizes commission data
+   - Target distribution pie chart
+   - Top earners bar chart
+
+6. CommissionRateEditor (src/components/commission-rate-editor.tsx):
+   - Allows editing of commission rate tiers
+   - Add/remove custom rate thresholds
+   - Real-time preview of rate structure
+
+=== JAVASCRIPT/TYPESCRIPT METHODS USED ===
+
+1. getCommissionRate(targetCompletion, rates):
+   - Determines applicable commission rate based on target completion
+   - Iterates through sorted rate thresholds
+   - Returns matching rate or 0 if below minimum threshold
+
+2. calculateCommission(saleAmount, targetCompletion, rates, customRate):
+   - Main calculation function
+   - Uses custom rate if provided, otherwise determines rate via getCommissionRate
+   - Applies formula: (amount * rate) / 100
+   - Rounds to 2 decimal places
+
+3. calculateTotalSales(salesData):
+   - Sums all sale amounts using reduce()
+
+4. calculateTotalCommission(salesData, rates):
+   - Calculates total commission across all sales using reduce()
+
+5. calculateAverageCommission(salesData, rates):
+   - Divides total commission by number of sales records
+
+=== HOW THE UI CONNECTS TO CALCULATIONS ===
+
+1. State Management:
+   - Commission rates stored in Home component state
+   - Shared with child components via props
+   - Updates propagate through component tree
+
+2. Real-time Updates:
+   - Components use imported calculation functions
+   - Values update as inputs change
+   - No page refresh required
+
+3. Data Flow:
+   - Home (page.tsx) manages global state
+   - Child components receive data as props
+   - Calculations performed in lib/calculations.ts
+   - Results displayed in UI components
+
+=== CUSTOM RATE SUPPORT ===
+
+- Individual sales records can override tiered rates
+- Custom rates bypass normal threshold determination
+- Useful for special promotions or exceptions
+- Set via checkbox in AddSalesRecord form
+
+=== RESPONSIVENESS AND ACCESSIBILITY ===
+
+- Built with Radix UI primitives for accessibility
+- Styled with Tailwind CSS for responsive design
+- Works on mobile, tablet, and desktop screens
+- Proper keyboard navigation support

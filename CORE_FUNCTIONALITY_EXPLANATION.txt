@@ -1,0 +1,155 @@
+# Salesiom - Core Functionality Explanation
+
+## Overview
+This document explains the core functionality of the Salesiom commission management system, focusing on:
+1. Default commission rate logic
+2. Custom rate logic
+3. Sales data generation with rates
+
+## 1. Default Commission Rate Logic
+
+### Rate Structure Definition
+The default commission rates are defined in the main application component (src/app/page.tsx):
+
+```
+const [commissionRates, setCommissionRates] = useState<CommissionRates>({
+  80: 1,   // 1% commission for 80% target completion
+  90: 2,   // 2% commission for 90% target completion
+  100: 3,  // 3% commission for 100% target completion
+  110: 4,  // 4% commission for 110% target completion
+  120: 5,  // 5% commission for 120% target completion
+})
+```
+
+### Rate Selection Logic
+The core logic for determining which rate to apply is implemented in src/lib/calculations.ts:
+
+```
+export function getCommissionRate(targetCompletion: number, rates: CommissionRates): number {
+  const sortedTargets = Object.keys(rates)
+    .map(Number)
+    .sort((a, b) => b - a)
+
+  for (const target of sortedTargets) {
+    if (targetCompletion >= target) {
+      return rates[target]
+    }
+  }
+
+  return 0
+}
+```
+
+This function works by:
+1. Sorting all target thresholds in descending order
+2. Finding the highest threshold that the actual target completion meets or exceeds
+3. Returning the corresponding commission rate
+4. Returning 0% if the target completion is below the lowest threshold (80%)
+
+For example:
+- 75% target completion → 0% commission (below minimum threshold)
+- 85% target completion → 1% commission (meets 80% threshold)
+- 95% target completion → 2% commission (meets 90% threshold)
+- 100% target completion → 3% commission (meets 100% threshold)
+
+## 2. Custom Rate Logic
+
+### Custom Rate Override
+The system allows for custom commission rates to be applied to individual sales records:
+
+In src/components/add-sales-record.tsx:
+```
+customCommissionRate: useCustomRate ? Number.parseFloat(customRate) : undefined,
+```
+
+When a custom rate is specified, the calculation logic in src/lib/calculations.ts uses it instead of looking up a rate:
+
+```
+export function calculateCommission(
+  saleAmount: number,
+  targetCompletion: number,
+  rates: CommissionRates,
+  customRate?: number,
+): number {
+  const rate = customRate !== undefined ? customRate : getCommissionRate(targetCompletion, rates)
+  return Math.round(((saleAmount * rate) / 100) * 100) / 100
+}
+```
+
+### Custom Rate Editor
+Users can modify the default commission rate structure through the CommissionRateEditor component:
+- Add new target/rate pairs
+- Modify existing rates
+- Delete existing rate tiers
+- Save changes which then propagate to all components
+
+## 3. Sales Data Generation with Rates
+
+### Fake Data Generation
+The application generates fake sales data for demonstration purposes in src/lib/fake-data.ts. Each generated sales record includes:
+
+```
+{
+  employeeId: string
+  employeeName: string
+  designation: string
+  productName: string
+  saleAmount: number
+  targetCompletion: number
+  status: "Sold" | "Not Sold"
+  customCommissionRate?: number
+}
+```
+
+### Commission Calculation in Generated Data
+When generating fake data, the system:
+1. Assigns random target completion percentages (typically between 80-130%)
+2. Assigns random sale amounts
+3. Calculates the appropriate commission rate based on the default rate structure
+4. Calculates the actual commission amount using that rate
+
+### Real-time Commission Calculation
+The system calculates commissions in real-time:
+- When viewing the dashboard, commissions are calculated for all sales records
+- When adding new records, estimated commissions are displayed immediately
+- When modifying rates, all commission calculations update automatically
+
+## 4. Key Business Rules
+
+### Commission Calculation Formula
+Commission = (Sale Amount × Commission Rate) / 100
+
+The result is rounded to 2 decimal places for currency representation.
+
+### Rate Tiers
+1. Below 80% target completion: 0% commission
+2. 80-89% target completion: 1% commission
+3. 90-99% target completion: 2% commission
+4. 100-109% target completion: 3% commission
+5. 110-119% target completion: 4% commission
+6. 120%+ target completion: 5% commission
+
+### Flexibility Features
+1. Custom rates can override the standard tier system
+2. Rate tiers can be modified by administrators
+3. Individual sales records can have custom commission rates
+4. All calculations update in real-time when rates change
+
+## 5. Component Integration
+
+### Rate Propagation
+The commission rates are passed down from the main application component to all child components that need them:
+- CommissionCalculator
+- SalesTable
+- SummaryCards
+- CommissionCharts
+- AddSalesRecord
+
+### Real-time Updates
+When rates are modified through the CommissionRateEditor:
+1. The main state is updated
+2. New rates are passed down to all components
+3. All commission calculations automatically recalculate
+4. UI elements update to reflect new values
+
+This architecture ensures consistency across the application while providing flexibility for both standard and custom commission calculations.
